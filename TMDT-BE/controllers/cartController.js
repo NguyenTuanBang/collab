@@ -340,14 +340,22 @@ const CartController = {
     },
     removeFromCart: async (req, res) => {
         try {
+            console.log("REMOVE FROM CART - Request body:", req.body);
             const { cartItemId } = req.body;
             if (!cartItemId) return res.status(400).send({ message: "Missing cartItemId" });
 
-            const item = await CartItemModel.findById(cartItemId );
-            await item.deleteOne()
+            const item = await CartItemModel.findById(cartItemId);
+            console.log("Item found:", item?._id, "CartStore:", item?.cartStore_id);
+            
+            if (!item) {
+                return res.status(404).send({ message: "Item not found" });
+            }
+            
+            await item.deleteOne();
+            console.log("Item deleted successfully");
             res.status(200).send({ message: "Item removed from cart" });
         } catch (error) {
-            console.error(error);
+            console.error("ERROR in removeFromCart:", error);
             return res.status(500).send({ message: error.message });
         }
     },
