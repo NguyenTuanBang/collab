@@ -4,23 +4,27 @@ import api from "../utils/api";
 function CartDropdown({ store, onCartChange }) {
     const [isOpen, setIsOpen] = useState(true);
     const [showPromotionModal, setShowPromotionModal] = useState(false);
-    const [items, setItems] = useState([])
-
-    useEffect(() => {
-        setItems(store.Item.map((item) => ({ ...item, selected: item.is_chosen })));
-    }, [store]);
+    
+    // Dùng trực tiếp store.Item thay vì local state
+    const items = store.Item || [];
+    
+    // Debug: Log items để xem data
+    console.log("🔍 CartDropdown - Store:", store._id);
+    console.log("🔍 Items:", items.map(i => ({ 
+        id: i._id, 
+        unitPrice: i.unitPrice, 
+        finalPrice: i.finalPrice, 
+        discountValue: i.discountValue,
+        is_chosen: i.is_chosen
+    })));
 
     const toggleDropdown = () => setIsOpen(!isOpen);
 
     const increaseQuantity = async (id) => {
         try {
-            setItems((prev) =>
-                prev.map((item) =>
-                    item._id === id ? { ...item, quantity: item.quantity + 1 } : item
-                )
-            );
+            // Không update state trước, chờ API response
             await api.post("/cart/increase", { cartItemId: id });
-            onCartChange()
+            onCartChange(); // Fetch lại data từ server
         } catch (err) {
             console.error(err);
         }
@@ -29,9 +33,8 @@ function CartDropdown({ store, onCartChange }) {
 
     const removeItem = async (id) => {
         try {
-            setItems((prev) => prev.filter((item) => item._id !== id));
             await api.post("/cart/remove", { cartItemId: id });
-            onCartChange()
+            onCartChange(); // Fetch lại data từ server
         } catch (err) {
             console.error(err);
         }
@@ -44,13 +47,9 @@ function CartDropdown({ store, onCartChange }) {
             const item = items.find(i => i._id === id);
             if (item.quantity <= 1) return;
 
-            setItems((prev) =>
-                prev.map((i) =>
-                    i._id === id ? { ...i, quantity: i.quantity - 1 } : i
-                )
-            );
+            // Không update state trước, chờ API response
             await api.post("/cart/reduce", { cartItemId: id });
-            onCartChange()
+            onCartChange(); // Fetch lại data từ server
         } catch (err) {
             console.error(err);
         }
@@ -59,46 +58,38 @@ function CartDropdown({ store, onCartChange }) {
 
     const toggleSelect = async (id) => {
         try {
-            // 1. Lấy trạng thái hiện tại của item
+            // Lấy trạng thái hiện tại của item
             const item = items.find(i => i._id === id);
-            if (!item) return; // item không tồn tại thì thôi
+            if (!item) return;
 
-            // 2. Tạo trạng thái mới (toggle)
-            const newSelected = !item.selected;
+            // Toggle trạng thái
+            const newSelected = !item.is_chosen;
 
-            // 3. Cập nhật state frontend
-            setItems(prev =>
-                prev.map(i =>
-                    i._id === id ? { ...i, selected: newSelected } : i
-                )
-            );
-
-            // 4. Gửi trạng thái mới lên backend
+            // Gửi trạng thái mới lên backend
             await api.post("/cart/change", { cartItemId: id, is_chosen: newSelected });
-            onCartChange()
+            onCartChange(); // Fetch lại data từ server
         } catch (err) {
             console.error("Lỗi toggleSelect:", err);
         }
     };
 
 
-    const allSelected = items.every(item => item.selected);
+    const allSelected = items.every(item => item.is_chosen);
 
     const toggleSelectAll = async () => {
         try {
-            const newState = !allSelected; // trạng thái mới của tất cả items
-            setItems(prev => prev.map(item => ({ ...item, selected: newState })));
+            const newState = !allSelected;
 
-            // Gọi API 1 lần cho từng item (hoặc bạn có thể viết API toggle nhiều item cùng lúc)
+            // Gọi API cho từng item
             await Promise.all(
                 items.map(item =>
                     api.post("/cart/change", {
                         cartItemId: item._id,
-                        is_chosen: newState // truyền trạng thái mới
+                        is_chosen: newState
                     })
                 )
             );
-            onCartChange()
+            onCartChange(); // Fetch lại data từ server
         } catch (err) {
             console.error(err);
         }
@@ -163,7 +154,7 @@ function CartDropdown({ store, onCartChange }) {
                                 <div className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
-                                        checked={item.selected}
+                                        checked={item.is_chosen}
                                         onChange={() => toggleSelect(item._id)}
                                         className="w-4 h-4"
                                     />
@@ -203,14 +194,14 @@ function CartDropdown({ store, onCartChange }) {
                                         {item.discountValue && item.discountValue !== 0 ? (
                                             <>
                                                 <p className="text-gray-400 line-through text-sm">
-                                                    {(item.finalPrice + item.discountValue).toLocaleString()}₫
+                                                    {(item.unitPrice * item.quantity).toLocaleString()}₫
                                                 </p>
                                                 <p className="font-semibold">
-                                                    {(item.finalPrice).toLocaleString()}₫
+                                                    {(item.finalPrice || item.unitPrice * item.quantity).toLocaleString()}₫
                                                 </p>
                                             </>
                                         ) : (
-                                            <p className="font-semibold">{item.finalPrice.toLocaleString()}₫</p>
+                                            <p className="font-semibold">{(item.finalPrice || item.unitPrice * item.quantity).toLocaleString()}₫</p>
                                         )}
                                     </div>
                                     <button
@@ -225,7 +216,7 @@ function CartDropdown({ store, onCartChange }) {
                         ))}
                     </div>
                 )}
-                {isOpen && items.some((item) => item.selected) && (
+                {isOpen && items.some((item) => item.is_chosen) && (
                     <div
                         className="mt-2 p-3 border rounded bg-yellow-50 cursor-pointer hover:bg-yellow-100"
                         onClick={() => setShowPromotionModal(true)}

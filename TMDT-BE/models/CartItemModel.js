@@ -26,7 +26,7 @@ const cartItemSchema = new mongoose.Schema({
     },
     is_chosen: {
         type: Boolean,
-        default: false
+        default: true // Mặc định items mới được chọn
     },
     is_out_of_stock: {
         type: Boolean,
@@ -69,21 +69,31 @@ const cartItemSchema = new mongoose.Schema({
 // }
 
 cartItemSchema.pre("save", async function (next) {
-    this.finalPrice = this.unitPrice * this.quantity;
+    // Set finalPrice tạm thời nếu chưa có
+    if (!this.finalPrice || this.isModified('quantity') || this.isModified('unitPrice')) {
+        this.finalPrice = this.unitPrice * this.quantity;
+    }
+    next();
+});
+
+// Sau khi save, gọi applyPromotionsToItems
+cartItemSchema.post("save", async function (doc) {
     try {
         const CartStore = mongoose.model("CartStore");
-        const store = await CartStore.findById(this.cartStore_id);
+        const store = await CartStore.findById(doc.cartStore_id);
+        
         if (store && store.onDeploy === false) {
             store.onDeploy = true;
             await store.save();
         }
+        
         if (store && store.cart_id) {
+            // applyPromotionsToItems sẽ update lại finalPrice với discount
             await applyPromotionsToItems(store.cart_id, store._id);
         }
     } catch (err) {
         console.error("Lỗi khi cập nhật promotion:", err);
     }
-    next();
 });
 cartItemSchema.pre("updateMany", async function (next) {
     const update = this.getUpdate();
@@ -114,28 +124,35 @@ cartItemSchema.pre("updateMany", async function (next) {
 
 
 cartItemSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
+    console.log("PRE DELETE HOOK TRIGGERED - Item ID:", this._id);
     try {
         const CartStore = mongoose.model("CartStore");
         const CartItem = mongoose.model("CartItem");
         const store = await CartStore.findById(this.cartStore_id);
 
+        console.log("Store found:", store?._id);
+
         if (store && store.cart_id) {
-            // Kiểm tra còn item nào thuộc store này không
+            // Kiểm tra còn item nào thuộc store này không (trừ item đang bị xóa)
             const remainingItems = await CartItem.countDocuments({
                 cartStore_id: store._id,
-                is_chosen: true
+                _id: { $ne: this._id } // Loại trừ item hiện tại
             });
 
+            console.log("Remaining items after delete:", remainingItems);
+
             if (remainingItems === 0) {
-                // Không còn item nào được chọn → store “chết”
+                // Không còn item nào → store "chết"
+                console.log("Store will be set to onDeploy=false");
                 store.onDeploy = false;
                 store.subTotal = 0;
                 store.finalTotal = 0;
                 await store.save({ validateBeforeSave: false });
+            } else {
+                // Vẫn còn items → tính lại promotion
+                console.log("Recalculating promotions...");
+                await applyPromotionsToItems(store.cart_id, store._id);
             }
-
-            // Gọi lại logic tính tổng + promotion
-            await applyPromotionsToItems(store.cart_id, store._id);
         }
         next();
     } catch (err) {
