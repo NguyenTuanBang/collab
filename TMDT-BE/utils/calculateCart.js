@@ -5,7 +5,7 @@ import CartStoreModel from "../models/CartStoreModel.js";
 
 export async function applyPromotionsToItems(cartId, storeId = null) {
     console.log("🔵 applyPromotionsToItems called - cartId:", cartId, "storeId:", storeId);
-    
+
     const cart = await CartModel.findById(cartId).populate("promotion");
     const stores = storeId
         ? await CartStoreModel.find({ _id: storeId }).populate("promotion")
@@ -19,14 +19,14 @@ export async function applyPromotionsToItems(cartId, storeId = null) {
     for (const store of stores) {
         const items = await CartItemModel.find({ cartStore_id: store._id, is_chosen: true });
         console.log(`🟡 Store ${store._id} - Items found (is_chosen=true):`, items.length);
-        
+
         const storeTotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
         console.log(`🟡 Store ${store._id} - storeTotal:`, storeTotal);
-        
+
         storeTotals[store._id] = { items, storeTotal };
         cartTotal += storeTotal;
     }
-    
+
     console.log("🟣 cartTotal:", cartTotal);
 
     // Tính global discount
@@ -84,12 +84,12 @@ export async function applyPromotionsToItems(cartId, storeId = null) {
             const storePart = (itemTotal / storeTotal) * storeDiscount;
             const globalPart = (itemTotal / storeTotal) * globalForStore;
 
-            console.log(`   📌 Item calc: itemTotal=${itemTotal}, storeTotal=${storeTotal}, ratio=${itemTotal/storeTotal}`);
+            console.log(`   📌 Item calc: itemTotal=${itemTotal}, storeTotal=${storeTotal}, ratio=${itemTotal / storeTotal}`);
             console.log(`   📌 storePart = ${storePart}, globalPart = ${globalPart}`);
 
             const totalDiscount = storePart + globalPart;
             const final = Math.max(itemTotal - totalDiscount, 0);
-            
+
             console.log(`🔶 Item ${item._id}: unitPrice=${item.unitPrice}, qty=${item.quantity}, itemTotal=${itemTotal}, discount=${totalDiscount}, final=${final}`);
 
             await CartItemModel.findByIdAndUpdate(item._id, {

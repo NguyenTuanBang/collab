@@ -18,7 +18,7 @@ async function migrate() {
         );
 
         console.log("✅ Updated items:", result.modifiedCount);
-        
+
         await mongoose.disconnect();
         console.log("✅ Migration completed!");
         process.exit(0);

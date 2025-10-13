@@ -346,11 +346,11 @@ const CartController = {
 
             const item = await CartItemModel.findById(cartItemId);
             console.log("Item found:", item?._id, "CartStore:", item?.cartStore_id);
-            
+
             if (!item) {
                 return res.status(404).send({ message: "Item not found" });
             }
-            
+
             await item.deleteOne();
             console.log("Item deleted successfully");
             res.status(200).send({ message: "Item removed from cart" });
