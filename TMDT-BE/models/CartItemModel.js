@@ -26,7 +26,7 @@ const cartItemSchema = new mongoose.Schema({
   },
   is_chosen: {
     type: Boolean,
-    default: false, // Mặc định items mới được chọn
+    default: false, 
   },
   is_out_of_stock: {
     type: Boolean,

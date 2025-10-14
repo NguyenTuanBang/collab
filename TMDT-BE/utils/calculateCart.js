@@ -113,7 +113,11 @@ export async function applyPromotionsToItems(cartId, storeId = null) {
     const shippingTotal = updatedStores.reduce((sum, s) => sum + (s.shippingFee || 0), 0);
 
     console.log(`💙 Cart total - subTotal: ${cartSub}, shipping: ${shippingTotal}, finalTotal: ${cartSub + shippingTotal}`);
+<<<<<<< HEAD
     cart.shippingFee = shippingTotal
+=======
+
+>>>>>>> bdbd341cade874dfa8dadf9859b9b8e32263e2d3
     cart.subTotal = cartSub;
     cart.finalTotal = cartSub + shippingTotal;
     await cart.save({ validateBeforeSave: false });
