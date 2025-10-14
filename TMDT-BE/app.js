@@ -11,6 +11,8 @@ import orderRouter from "./routes/orderRoute.js";
 import tagsController from './controllers/tags.Controller.js'
 import globalErrorHandle from "./controllers/errorController.js";
 import AppError from "./utils/appError.js";
+import authController from "./controllers/authController.js";
+import test from "./test.js";
 
 const app = express();
 
@@ -48,6 +50,7 @@ app.use('/api/order', orderRouter);
 app.use("/promotion", productRouter)
 app.get('/alltags', tagsController.getAll);
 app.get('/fivetags', tagsController.getFive);
+app.get('/testdata', authController.protect, test.getOrderItem)
 // ❌ KHÔNG cần serve thư mục local avatar nữa
 // Vì dùng Cloudinary nên phần này bỏ đi:
 // app.use("/img/avatars", express.static(path.join(__dirname, "public/img/avatars")));
