@@ -13,6 +13,7 @@ import useAddress from "../hooks/useAdress";
 import useToast from "../hooks/useToast";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 
 const Order = () => {
   const user = useAuth();
@@ -57,14 +58,22 @@ const Order = () => {
   };
 
   const onPayment = async ()=>{
-    const res = await api.post('/order', {address: chosenAddress._id})
-    if(res.status===200) {
-      toast.success("Thành công", "Thanh toán thành công")
-      navigate("/products")
-    }else{
-      toast.error("Lỗi", "Có vấn đề xảy ra")
-    }
+    onPaymentMutation.mutate()
   }
+  const onPaymentMutation = useMutation({
+      mutationFn: async () => {
+        return await api.post('/order', {address: chosenAddress._id})
+      },
+      onSuccess: () => {
+        toast.success("Thành công", "Vui lòng ấn vào giỏ hàng để xem thêm")
+        navigate("/products")
+        queryClient.invalidateQueries(["cartCount"]);
+      },
+      onError: (err) => {
+        toast.error("Lỗi", "Vui lòng thử lại");
+        console.error(err);
+      },
+    });
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [provinces, setProvinces] = useState([]);

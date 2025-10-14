@@ -18,7 +18,7 @@ const OrderController = {
       const storeItems = await Promise.all(
         storeCart.map(async (store) => {
           const items = await CartItemModel.find({
-            cartStoreId: store._id,
+            cartStore_id: store._id,
             is_chosen: true,
           });
           return { store, items };
