@@ -7,28 +7,30 @@ import { useState } from "react";
 import { useEffect } from "react";
 import api from "../utils/api";
 import axios from "axios";
+import { useCartCount } from "../hooks/useCartCount";
 
 
 function Navbar() {
   const { user } = useAuth();
   const navigate = useNavigate()
+  const { data: cartCount, isLoading } = useCartCount();
 
-  const [numberOfItem, setNumberOfItem] = useState(0)
-  const [onDisplay, setOndisplay] = useState(false)
+  // const [numberOfItem, setNumberOfItem] = useState(0)
+  // const [onDisplay, setOndisplay] = useState(false)
 
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    const fetchQuantityOfItems = async () => {
-      const res = await api.get(`/cart/count`)
-      setNumberOfItem(res.data.data)
-      setOndisplay(res.data.data !== 0)
-    }
-    fetchQuantityOfItems()
-  }, [])
+  // useEffect(() => {
+  //   const fetchQuantityOfItems = async () => {
+  //     const res = await api.get(`/cart/count`)
+  //     setNumberOfItem(res.data.data)
+  //     setOndisplay(res.data.data !== 0)
+  //   }
+  //   fetchQuantityOfItems()
+  // }, [])
 
 
   useEffect(() => {
@@ -230,9 +232,9 @@ function Navbar() {
             <div className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/20 transition cursor-pointer">
               <Link to="/cart">
                 <ShoppingCartIcon className="w-6 h-6 text-white" />
-                {onDisplay && (
+                {cartCount>0 && !isLoading && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
-                    {numberOfItem}
+                    {cartCount}
                   </span>
                 )}
               </Link>

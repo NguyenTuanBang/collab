@@ -3,18 +3,22 @@ import Navbar from "../components/Navbar";
 import { Button } from "@heroui/react";
 import api from "../utils/api";
 import CartDropdown from "../components/CartDropDown";
+import { useNavigate } from "react-router-dom";
 
 
 
 function Cart() {
   const [cart, setCart] = useState({});
   const [cartStores, setCartStores] = useState([]);
+  const [displayPayBtn, setDisplayPayBtn] = useState(false)
+  const navigate = useNavigate()
 
   const fetchCart = async () => {
     try {
       const res = await api.get(`/cart/`);
       setCart(res.data.data);
       setCartStores(res.data.data.Store);
+      setDisplayPayBtn(res.data.data.Store.Item)
     } catch (err) {
       console.error(err);
     }
@@ -51,7 +55,9 @@ function Cart() {
                 </p>
               </div>
 
-              <button className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-md hover:opacity-90 transition-all active:scale-95">
+              <button 
+                className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-md hover:opacity-90 transition-all active:scale-95"
+                onClick={()=>navigate("/order")}>
                 Thanh toán
               </button>
             </div>

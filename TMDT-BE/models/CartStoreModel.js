@@ -46,5 +46,17 @@ CartStoreSchema.pre("save", async function (next) {
     next();
 });
 
+CartStoreSchema.pre("save", async function (next) {
+    // Nếu chỉ thay đổi trạng thái thì bỏ promotion của store này và nếu toàn bộ store đều bị loại bỏ thì sẽ xoá promotion trong Cart tổng
+    if (this.isModified("onDeploy")) {
+        this.promotion = null
+        const Cart = await CartModel.findById(this.cart_id)
+        const remainingCartStore = await CartStoreModel.find({cart_id: Cart._id})
+        if(!remainingCartStore) Cart.promotion = null
+        await applyPromotionsToItems(this.cart_id);
+    }
+    next();
+});
+
 const CartStoreModel = mongoose.model("CartStore", CartStoreSchema)
 export default CartStoreModel

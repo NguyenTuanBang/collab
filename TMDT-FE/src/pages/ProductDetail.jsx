@@ -7,9 +7,11 @@ import useAuth from "../hooks/useAuth";
 import useToast from "../hooks/useToast";
 import axios from "axios";
 import api from "../utils/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 function ProductDetail() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { id } = useParams();
   const [product, setProduct] = useState({ variants: [] });
   const navigate = useNavigate();
@@ -107,11 +109,33 @@ function ProductDetail() {
     setSelectedSize(size);
   };
 
-  const addToCart = async () => {
-    if (!selectedColor || !selectedSize) return toast.error("Thiếu trường", "Vui lòng chọn đủ các trường giá trị");
-    const res = await api.post(`/cart/addToCart`, { variant_id: selectedVariant._id, quantity });
-    if (res.status === 200) toast.success("Thành công", "Vui lòng ấn vào giỏ hàng để xem thêm");
-    else toast.error("Lỗi", "Vui lòng thử lại");
+  // const addToCart = async () => {
+  //   if (!selectedColor || !selectedSize) return toast.error("Thiếu trường", "Vui lòng chọn đủ các trường giá trị");
+  //   const res = await api.post(`/cart/addToCart`, { variant_id: selectedVariant._id, quantity });
+  //   if (res.status === 200) toast.success("Thành công", "Vui lòng ấn vào giỏ hàng để xem thêm");
+  //   else toast.error("Lỗi", "Vui lòng thử lại");
+  // };
+   const addToCartMutation = useMutation({
+    mutationFn: async () => {
+      return await api.post("/cart/addToCart", {
+        variant_id: selectedVariant._id,
+        quantity,
+      });
+    },
+    onSuccess: () => {
+      // ✅ Làm mới lại cart count trong Navbar
+      toast.success("Thành công", "Vui lòng ấn vào giỏ hàng để xem thêm")
+      queryClient.invalidateQueries(["cartCount"]);
+    },
+    onError: (err) => {
+      toast.error("Lỗi", "Vui lòng thử lại");
+      console.error(err);
+    },
+  });
+
+  const addToCart = () => {
+    if (!selectedVariant || !quantity) return;
+    addToCartMutation.mutate();
   };
 
   const buyNow = async () => {

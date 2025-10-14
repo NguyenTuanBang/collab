@@ -12,8 +12,8 @@ const addressSchema = new mongoose.Schema(
     detail: String,
     isDefault: { type: Boolean, default: false },
     onDeploy: {type: Boolean, default: true },
-    lat: String,
-    lng: String
+    lat: Number,
+    lng: Number
   },
   {
     timestamps: true,

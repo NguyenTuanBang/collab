@@ -11,6 +11,8 @@ router.post("/increase", authController.protect, CartController.increaseFromCart
 router.post("/remove", authController.protect, CartController.removeFromCart)
 router.post("/change", authController.protect, CartController.changeCartItemState)
 router.get('/count', authController.protect, CartController.numberOfItem)
+router.get('/preOrder', authController.protect, CartController.getPreOrderCart)
+router.post('/shippingFee', authController.protect, CartController.checkShippingFee)
 
 export default router;
 

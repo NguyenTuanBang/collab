@@ -137,13 +137,7 @@ import User from "../models/UserModel.js";
 import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 import Address from "../models/AddressModel.js";
-import { v2 as cloudinary } from 'cloudinary'
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 const userController = {
   getMe: catchAsync(async (req, res, next) => {
@@ -156,6 +150,7 @@ const userController = {
   }),
 
   updateMe: catchAsync(async (req, res, next) => {
+    console.log(process.env.CLOUDINARY_API_SECRET)
     const allowedFields = ["fullname", "phone"];
     const updateData = {};
     allowedFields.forEach((field) => {
