@@ -6,6 +6,7 @@ import StoreModel from "../models/StoreModel.js";
 import ProductVariantsModel from "../models/product_variantsModel.js";
 import ImageModel from "../models/imageModel.js";
 import SizeModel from "../models/sizeModel.js";
+import ProductTagsModel from "../models/ProductTagsModel.js";
 const commonLookups = [
   // join store
   {
@@ -103,7 +104,7 @@ const productController = {
       }
       await Promise.all(
         tags.map(async (tagId) => {
-          await ProductTag.create({
+          await ProductTagsModel.create({
             product_id: newProduct._id,
             tag_id: tagId, 
           });
