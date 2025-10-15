@@ -13,6 +13,7 @@ import ProductDetail from "./pages/ProductDetail";
 import SellerRegister from "./pages/SellerRegister";
 import Cart from "./pages/Cart";
 import Order from "./pages/Order";
+import ProductForm from "./components/formCreateProduct";
 
 function App() {
   return (
@@ -31,7 +32,7 @@ function App() {
         <Route path="signup" element={<Signup />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
       </Route>
-      <Route path="/test" element={<Test />} />
+      <Route path="/test" element={<ProductForm />} />
       <Route path="/products" element={<Products />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />

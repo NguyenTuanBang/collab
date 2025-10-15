@@ -25,10 +25,6 @@ const productVariantsSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    SKU_code:{
-        type: String,
-        required: true
-    },
     onDeploy: {
         type: Boolean,
         default: true

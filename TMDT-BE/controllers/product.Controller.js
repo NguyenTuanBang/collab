@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 import ProductModel from "../models/ProductModel.js";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CloudinaryKey,
+  api_secret: process.env.CloudinarySecretKey,
+});
 
 const commonLookups = [
   // join store
@@ -13,14 +20,13 @@ const commonLookups = [
         {
           $project: {
             _id: 1,
-            name: 1
-          }
-        }
-      ]
+            name: 1,
+          },
+        },
+      ],
     },
   },
   { $unwind: { path: "$store", preserveNullAndEmptyArrays: true } },
-
 
   // join tags
   {
@@ -34,12 +40,12 @@ const commonLookups = [
             from: "tags",
             localField: "tag_id",
             foreignField: "_id",
-            as: "tag"
-          }
+            as: "tag",
+          },
         },
         { $unwind: { path: "$tag", preserveNullAndEmptyArrays: true } },
       ],
-      as: "producttags"
+      as: "producttags",
     },
   },
   {
@@ -53,36 +59,74 @@ const commonLookups = [
             from: "images",
             localField: "image",
             foreignField: "_id",
-            as: "image"
-          }
+            as: "image",
+          },
         },
         {
-          $lookup:{
+          $lookup: {
             from: "sizes",
             localField: "size",
             foreignField: "_id",
-            as: 'size'
-          }
+            as: "size",
+          },
         },
         { $unwind: { path: "$image", preserveNullAndEmptyArrays: true } },
         { $unwind: { path: "$size", preserveNullAndEmptyArrays: true } },
       ],
-      as: "variants"
+      as: "variants",
     },
-  }
-]
+  },
+];
 
+const uploadToCloudinary = (fileBuffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "products" },
+      (error, result) => {
+        if (result) resolve(result);
+        else reject(error);
+      }
+    );
+    streamifier.createReadStream(fileBuffer).pipe(stream);
+  });
+};
 
 const productController = {
+  createNewProduct: async (req, res) => {
+    try {
+      const { name, description } = req.body;
+      const tags = JSON.parse(req.body.tags);
+      const variants = JSON.parse(req.body.variants); 
+
+      // upload từng ảnh ứng với từng variant
+      for (let i = 0; i < variants.length; i++) {
+        const file = req.files[i];
+        if (file) {
+          const result = await uploadToCloudinary(file.buffer);
+          variants[i].url = result.secure_url;
+        }
+      }
+
+      console.log(name)
+      console.log(description)
+      console.log(tags)
+      console.log(variants)
+
+      res.status(201).json({ status: "success" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Lỗi khi tạo sản phẩm" });
+    }
+  },
+
   getAll: async (req, res) => {
     try {
       const curPage = parseInt(req.query.curPage) || 1;
       const name = req.query.name || "";
       const query = {};
 
-
       if (name) query.name = { $regex: name, $options: "i" };
-      query.status = "Đang bán"
+      query.status = "Đang bán";
 
       const itemQuantity = await ProductModel.countDocuments(query);
       const numberOfPages = Math.ceil(itemQuantity / 20);
@@ -108,7 +152,9 @@ const productController = {
     try {
       const { id } = req.params;
       const data = await ProductModel.aggregate([
-        { $match: { _id: new mongoose.Types.ObjectId(id), status: "Đang bán" } },
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id), status: "Đang bán" },
+        },
         ...commonLookups,
       ]);
 
@@ -155,7 +201,8 @@ const productController = {
   searchByName: async (req, res) => {
     try {
       const { keyword } = req.query;
-      if (!keyword) return res.status(400).send({ message: "Keyword required" });
+      if (!keyword)
+        return res.status(400).send({ message: "Keyword required" });
 
       const regex = { $regex: keyword, $options: "i" };
       const totalResults = await ProductModel.countDocuments({ name: regex });
@@ -216,7 +263,12 @@ const productController = {
       const numberOfPages = Math.ceil(itemQuantity / 20);
 
       const data = await ProductModel.aggregate([
-        { $match: { store_id: new mongoose.Types.ObjectId(storeId), status: "Đang bán" } },
+        {
+          $match: {
+            store_id: new mongoose.Types.ObjectId(storeId),
+            status: "Đang bán",
+          },
+        },
         ...commonLookups,
         { $skip: (curPage - 1) * 20 },
         { $limit: 20 },
@@ -226,6 +278,11 @@ const productController = {
     } catch (error) {
       res.status(500).send({ message: "Error", error: error.message });
     }
+  },
+  createNewProduct: async (req, res) => {
+    try {
+      const user = req.user;
+    } catch (error) {}
   },
 };
 

@@ -665,6 +665,16 @@ const authController = {
     req.user = currentUser;
     next();
   }),
+  restrictTo : ((...roles) => {
+    return (req, res, next) => {
+      if (!roles.includes(req.user.role)) {
+        return next(
+        new AppError("Bạn không có quyền truy cập tài nguyên này", 403)
+      );
+    }
+    next();
+    }
+  })
 };
 
 export default authController;

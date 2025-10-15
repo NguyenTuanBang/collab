@@ -12,7 +12,9 @@ import tagsController from './controllers/tags.Controller.js'
 import globalErrorHandle from "./controllers/errorController.js";
 import AppError from "./utils/appError.js";
 import authController from "./controllers/authController.js";
-import test from "./test.js";
+// import test from "./test.js";
+import productController from "./controllers/product.Controller.js";
+import upload from "./middlewares/uploadAvatar.js";
 
 const app = express();
 
@@ -47,10 +49,11 @@ app.use("/api/users", userRouter);
 app.use('/api/cart', cartRouter);
 app.use('/products', productRouter);
 app.use('/api/order', orderRouter);
+app.use('/api/createProducts', authController.protect, authController.restrictTo("seller"), upload.any(), productController.createNewProduct);
 app.use("/promotion", productRouter)
 app.get('/alltags', tagsController.getAll);
 app.get('/fivetags', tagsController.getFive);
-app.get('/testdata', authController.protect, test.getOrderItem)
+// app.get('/testdata', authController.protect, test.getOrderItem)
 // ❌ KHÔNG cần serve thư mục local avatar nữa
 // Vì dùng Cloudinary nên phần này bỏ đi:
 // app.use("/img/avatars", express.static(path.join(__dirname, "public/img/avatars")));
