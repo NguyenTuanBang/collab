@@ -3,7 +3,6 @@ dotenv.config({ path: "./config.env" });
 import mongoose from "mongoose";
 import app from "./app.js";
 
-
 const DB = process.env.DB.replace("<PASSWORD>", process.env.DB_PASSWORD);
 
 mongoose

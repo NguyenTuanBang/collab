@@ -49,7 +49,7 @@ app.use("/api/users", userRouter);
 app.use('/api/cart', cartRouter);
 app.use('/products', productRouter);
 app.use('/api/order', orderRouter);
-app.use('/api/createProducts', authController.protect, authController.restrictTo("seller"), upload.any(), productController.createNewProduct);
+app.use('/api/createProduct', authController.protect, upload.array("variantImages"), productController.createNewProduct);
 app.use("/promotion", productRouter)
 app.get('/alltags', tagsController.getAll);
 app.get('/fivetags', tagsController.getFive);

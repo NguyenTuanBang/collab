@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
 import ProductModel from "../models/ProductModel.js";
-import { v2 as cloudinary } from "cloudinary";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CloudinaryKey,
-  api_secret: process.env.CloudinarySecretKey,
-});
-
+// import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../utils/cloudinary.js";
+import StoreModel from "../models/StoreModel.js";
+import ProductVariantsModel from "../models/product_variantsModel.js";
+import ImageModel from "../models/imageModel.js";
+import SizeModel from "../models/sizeModel.js";
 const commonLookups = [
   // join store
   {
@@ -78,44 +76,100 @@ const commonLookups = [
   },
 ];
 
-const uploadToCloudinary = (fileBuffer) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: "products" },
-      (error, result) => {
-        if (result) resolve(result);
-        else reject(error);
-      }
-    );
-    streamifier.createReadStream(fileBuffer).pipe(stream);
-  });
-};
-
 const productController = {
+  isRun: (req, res, next) => {
+    const file = req.files;
+    console.log(file);
+    next();
+  },
   createNewProduct: async (req, res) => {
     try {
+      
+      const user = req.user;
+      const store = await StoreModel.findOne({ user: user._id });
       const { name, description } = req.body;
-      const tags = JSON.parse(req.body.tags);
-      const variants = JSON.parse(req.body.variants); 
+      const newProduct = await ProductModel.create({
+        name,
+        description,
+        store_id: store._id,
+      });
+      let variants = [];
+      if (req.body.variants) {
+        variants = JSON.parse(req.body.variants);
+      }
+      let tags = [];
+      if (req.body.tags) {
+        tags = JSON.parse(req.body.tags);
+      }
+      await Promise.all(
+        tags.map(async (tagId) => {
+          await ProductTag.create({
+            product_id: newProduct._id,
+            tag_id: tagId, 
+          });
+        })
+      );
+      const uploadedImages = [];
+      for (const file of req.files) {
+        const result = await cloudinary.uploader.upload_stream(
+          { folder: "products" },
+          (error, result) => {
+            if (error) throw new AppError("Upload ảnh thất bại", 400);
+            uploadedImages.push(result.secure_url);
+          }
+        );
 
-      // upload từng ảnh ứng với từng variant
-      for (let i = 0; i < variants.length; i++) {
-        const file = req.files[i];
-        if (file) {
-          const result = await uploadToCloudinary(file.buffer);
-          variants[i].url = result.secure_url;
-        }
+        await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { folder: "products" },
+            (error, result) => {
+              if (error) reject(error);
+              else {
+                uploadedImages.push(result.secure_url);
+                resolve(result);
+              }
+            }
+          );
+          uploadStream.end(file.buffer);
+        });
       }
 
-      console.log(name)
-      console.log(description)
-      console.log(tags)
-      console.log(variants)
+     
+      variants.forEach((variant) => {
+        const idx = variant.urlIndex;
+        if (uploadedImages[idx]) {
+          variant.image = uploadedImages[idx]; 
+        }
+      });
 
-      res.status(201).json({ status: "success" });
+      await Promise.all(
+        variants.map(async (color)=>{
+          const image = await ImageModel.create({
+            url: color.image,
+            color: color.color
+          })
+          await Promise.all(
+            color.sizes.map(async (size)=>{
+              const newSize = await SizeModel.create({
+                size_value: size.size
+              })
+              const variant = await ProductVariantsModel.create({
+                product_id: newProduct._id,
+                image: image._id,
+                size: newSize._id,
+                quantity: size.quantity,
+                price: size.price
+              })
+            })
+          )
+        })
+      )
+      res.status(201).json({
+        status: "success",
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Lỗi khi tạo sản phẩm" });
+      console.error("❌ createNewProduct error:", err);
+      return next(new AppError("Tạo sản phẩm thất bại", 500));
     }
   },
 
@@ -278,11 +332,6 @@ const productController = {
     } catch (error) {
       res.status(500).send({ message: "Error", error: error.message });
     }
-  },
-  createNewProduct: async (req, res) => {
-    try {
-      const user = req.user;
-    } catch (error) {}
   },
 };
 

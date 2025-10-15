@@ -15,7 +15,6 @@ const userController = {
   }),
 
   updateMe: catchAsync(async (req, res, next) => {
-    
     const allowedFields = ["fullname", "phone"];
     const updateData = {};
     allowedFields.forEach((field) => {
@@ -29,11 +28,14 @@ const userController = {
         "base64"
       )}`;
       const fileName = `${req.user.id}_${Date.now()}`;
+      
       const result = await cloudinary.uploader.upload(dataUrl, {
         public_id: fileName,
         folder: "avatars",
         resource_type: "auto",
       });
+      console.log("false")
+      console.log("true")
       updateData.avatar = result.secure_url;
     }
 

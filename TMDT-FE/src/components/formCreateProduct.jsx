@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import api from "../utils/api.jsx";
 import {
   Form,
   Input,
@@ -169,26 +170,31 @@ const ProductFormModal = () => {
       // Thêm mảng tags (chuyển sang JSON string)
       formData.append("tags", JSON.stringify(payload.tags));
 
-      // Thêm variants (vì có cả file, nên phải tách)
+      // Nối riêng phần ảnh vào, phần còn lại stringify toàn bộ variants
+      const imageFiles = []; // giữ danh sách ảnh
+
       payload.variants.forEach((variant, index) => {
-        if (variant.url) {
-          formData.append(`variants[${index}][url]`, variant.url);
+        if (variant.url instanceof File) {
+          imageFiles.push({ index, file: variant.url });
         }
-        formData.append(`variants[${index}][color]`, variant.color);
-        formData.append(
-          `variants[${index}][sizes]`,
-          JSON.stringify(variant.sizes)
-        );
+      });
+
+      // Thêm toàn bộ variants (không có ảnh) vào form dưới dạng JSON
+      const variantsWithoutFile = payload.variants.map((v, i) => ({
+        color: v.color,
+        sizes: v.sizes,
+        // để tạm null url, backend sẽ xử lý upload
+        urlIndex: i,
+      }));
+      formData.append("variants", JSON.stringify(variantsWithoutFile));
+
+      // Thêm các file riêng
+      imageFiles.forEach(({ index, file }) => {
+        formData.append("variantImages", file);
       });
 
       // === Gửi request ===
-      await api.post(
-        `/createProduct`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      await api.post(`/createProduct`, formData);
 
       message.success("Lưu sản phẩm thành công!");
       setOpen(false);
@@ -278,128 +284,177 @@ const ProductFormModal = () => {
           <Divider orientation="left">Biến thể sản phẩm</Divider>
 
           {/* Grid hiển thị 2 card mỗi hàng */}
-          <Row gutter={[16, 16]}>
-            {variants.map((variant, vIndex) => (
-              <Col xs={24} md={12} key={variant.id}>
-                <Card
-                  title={`Biến thể ${vIndex + 1}`}
-                  extra={
-                    variants.length > 1 && (
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => removeVariant(variant.id)}
-                      />
-                    )
-                  }
-                  bordered
-                  style={{ height: "100%" }}
-                  hoverable
-                >
-                  <Space direction="vertical" style={{ width: "100%" }}>
-                    {/* Upload ảnh */}
-                    <Upload
-                      beforeUpload={(file) => handleUpload(file, vIndex)}
-                      showUploadList={false}
-                      accept="image/*"
-                    >
-                      <Button icon={<UploadOutlined />}>
-                        Chọn ảnh sản phẩm
-                      </Button>
-                    </Upload>
+          <div
+            style={{
+              maxHeight: "600px", // bạn có thể chỉnh 300–500px tùy giao diện
+              overflowY: "auto",
+              paddingRight: "8px", // tránh che nội dung khi có scrollbar
+            }}
+          >
+            <Row gutter={[16, 16]}>
+              {variants.map((variant, vIndex) => (
+                <Col xs={24} md={12} key={variant.id}>
+                  <Card
+                    title={`Biến thể ${vIndex + 1}`}
+                    extra={
+                      variants.length > 1 && (
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => removeVariant(variant.id)}
+                        />
+                      )
+                    }
+                    bordered
+                    style={{
+                      maxHeight: "400px", // bạn có thể chỉnh 300–500px tùy giao diện
+                      overflowY: "auto",
+                      paddingRight: "8px",
+                      height: "100%", // tránh che nội dung khi có scrollbar
+                    }}
+                    hoverable
+                  >
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      {/* Upload ảnh */}
+                      <Upload
+                        beforeUpload={(file) => handleUpload(file, vIndex)}
+                        showUploadList={false}
+                        accept="image/*"
+                      >
+                        <Button icon={<UploadOutlined />}>
+                          Chọn ảnh sản phẩm
+                        </Button>
+                      </Upload>
 
-                    {/* Hiển thị ảnh xem trước */}
-                    {variant.preview && (
-                      <Image
-                        src={variant.preview}
-                        alt="preview"
-                        width={120}
-                        height={120}
-                        style={{
-                          borderRadius: 8,
-                          objectFit: "cover",
-                          border: "1px solid #f0f0f0",
+                      {/* Hiển thị ảnh xem trước */}
+                      {variant.preview && (
+                        <Image
+                          src={variant.preview}
+                          alt="preview"
+                          width={120}
+                          height={120}
+                          style={{
+                            borderRadius: 8,
+                            objectFit: "cover",
+                            border: "1px solid #f0f0f0",
+                          }}
+                        />
+                      )}
+
+                      {/* Màu sắc */}
+                      <Input
+                        placeholder="Nhập màu sắc"
+                        value={variant.color}
+                        onChange={(e) => {
+                          const newVariants = [...variants];
+                          newVariants[vIndex].color = e.target.value;
+                          setVariants(newVariants);
                         }}
                       />
-                    )}
 
-                    {/* Màu sắc */}
-                    <Input
-                      placeholder="Nhập màu sắc"
-                      value={variant.color}
-                      onChange={(e) => {
-                        const newVariants = [...variants];
-                        newVariants[vIndex].color = e.target.value;
-                        setVariants(newVariants);
-                      }}
-                    />
+                      {/* Danh sách size */}
+                      <Divider orientation="left" style={{ marginTop: 12 }}>
+                        Size
+                      </Divider>
 
-                    {/* Danh sách size */}
-                    <Divider orientation="left" style={{ marginTop: 12 }}>
-                      Size
-                    </Divider>
+                      {variant.sizes.map((s, sIndex) => (
+                        <div
+                          key={sIndex}
+                          style={{
+                            border: "1px solid #f0f0f0",
+                            padding: 12,
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            background: "#fafafa",
+                          }}
+                        >
+                          <Row gutter={12} align="middle">
+                            <Col span={6}>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Size
+                              </label>
+                              <Input
+                                placeholder="VD: S, M, L"
+                                value={s.size}
+                                onChange={(e) => {
+                                  const newVariants = [...variants];
+                                  newVariants[vIndex].sizes[sIndex].size =
+                                    e.target.value;
+                                  setVariants(newVariants);
+                                }}
+                              />
+                            </Col>
 
-                    {variant.sizes.map((s, sIndex) => (
-                      <Space
-                        key={sIndex}
-                        style={{ display: "flex", marginBottom: 8 }}
-                        align="baseline"
+                            <Col span={8}>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Số lượng
+                              </label>
+                              <InputNumber
+                                min={0}
+                                value={s.quantity}
+                                placeholder="Nhập số lượng"
+                                onChange={(val) => {
+                                  const newVariants = [...variants];
+                                  newVariants[vIndex].sizes[sIndex].quantity =
+                                    val;
+                                  setVariants(newVariants);
+                                }}
+                                style={{ width: "100%" }}
+                              />
+                            </Col>
+
+                            <Col span={8}>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Giá (VNĐ)
+                              </label>
+                              <InputNumber
+                                min={0}
+                                value={s.price}
+                                placeholder="Nhập giá sản phẩm"
+                                formatter={(value) =>
+                                  `${value}`.replace(
+                                    /\B(?=(\d{3})+(?!\d))/g,
+                                    "."
+                                  )
+                                }
+                                parser={(value) => value.replace(/\./g, "")}
+                                style={{ width: "100%" }}
+                                onChange={(val) => {
+                                  const newVariants = [...variants];
+                                  newVariants[vIndex].sizes[sIndex].price = val;
+                                  setVariants(newVariants);
+                                }}
+                              />
+                            </Col>
+
+                            <Col span={2} style={{ textAlign: "center" }}>
+                              {variant.sizes.length > 1 && (
+                                <Button
+                                  type="text"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={() => removeSize(variant.id, sIndex)}
+                                />
+                              )}
+                            </Col>
+                          </Row>
+                        </div>
+                      ))}
+
+                      <Button
+                        type="dashed"
+                        icon={<PlusOutlined />}
+                        onClick={() => addSize(variant.id)}
                       >
-                        <Input
-                          placeholder="Size (VD: S, M, L)"
-                          value={s.size}
-                          onChange={(e) => {
-                            const newVariants = [...variants];
-                            newVariants[vIndex].sizes[sIndex].size =
-                              e.target.value;
-                            setVariants(newVariants);
-                          }}
-                          style={{ width: 80 }}
-                        />
-                        <InputNumber
-                          placeholder="Số lượng"
-                          min={0}
-                          value={s.quantity}
-                          onChange={(val) => {
-                            const newVariants = [...variants];
-                            newVariants[vIndex].sizes[sIndex].quantity = val;
-                            setVariants(newVariants);
-                          }}
-                        />
-                        <InputNumber
-                          placeholder="Giá"
-                          min={0}
-                          value={s.price}
-                          onChange={(val) => {
-                            const newVariants = [...variants];
-                            newVariants[vIndex].sizes[sIndex].price = val;
-                            setVariants(newVariants);
-                          }}
-                        />
-                        {variant.sizes.length > 1 && (
-                          <Button
-                            type="text"
-                            icon={<DeleteOutlined />}
-                            danger
-                            onClick={() => removeSize(variant.id, sIndex)}
-                          />
-                        )}
-                      </Space>
-                    ))}
-
-                    <Button
-                      type="dashed"
-                      icon={<PlusOutlined />}
-                      onClick={() => addSize(variant.id)}
-                    >
-                      Thêm size
-                    </Button>
-                  </Space>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+                        Thêm size
+                      </Button>
+                    </Space>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
 
           {/* Nút thêm biến thể */}
           <Button
