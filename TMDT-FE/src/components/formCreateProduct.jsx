@@ -34,8 +34,10 @@ const ProductFormModal = () => {
       sizes: [{ size: "", quantity: 0, price: 0 }],
     },
   ]);
+  const [submitable, setSubmittable] = useState(false);
   const [tagOption, setTagOption] = useState([]);
 
+  
   useEffect(() => {
     const getTagOption = async () => {
       try {
@@ -43,7 +45,7 @@ const ProductFormModal = () => {
           `${import.meta.env.VITE_LOCAL_PORT}/allTags`
         );
         const tags = res.data.data || [];
-
+        
         // map lại cho phù hợp với Select (hiển thị = name, giá trị = _id)
         const formattedTags = tags.map((tag) => ({
           label: tag.nameTag,
@@ -55,19 +57,22 @@ const ProductFormModal = () => {
         console.error("Lỗi khi lấy tag:", err);
       }
     };
-
+    
     getTagOption();
   }, []);
-
+  
   // Kiểm tra xem 1 biến thể có hợp lệ không
   const isVariantValid = (variant) => {
     if (!variant.color || !variant.image) return false;
     if (variant.sizes.length === 0) return false;
     return variant.sizes.every((s) => s.size && s.quantity > 0 && s.price > 0);
   };
-
+  
   // Kiểm tra xem tất cả biến thể hiện tại đều hợp lệ
   const allVariantsValid = variants.every(isVariantValid);
+  useEffect(() => {
+    setSubmittable(allVariantsValid);
+  }, [variants]);
 
   // ====== Quản lý biến thể ======
   const addVariant = () => {
@@ -471,7 +476,7 @@ const ProductFormModal = () => {
           {/* Nút hành động */}
           <Space style={{ display: "flex", justifyContent: "end" }}>
             <Button onClick={() => setOpen(false)}>Hủy</Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" disabled={!submitable}>
               Lưu sản phẩm
             </Button>
           </Space>
