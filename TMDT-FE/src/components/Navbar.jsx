@@ -9,10 +9,9 @@ import api from "../utils/api";
 import axios from "axios";
 import { useCartCount } from "../hooks/useCartCount";
 
-
 function Navbar() {
   const { user } = useAuth();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { data: cartCount, isLoading } = useCartCount();
 
   // const [numberOfItem, setNumberOfItem] = useState(0)
@@ -32,7 +31,6 @@ function Navbar() {
   //   fetchQuantityOfItems()
   // }, [])
 
-
   useEffect(() => {
     if (!keyword.trim()) {
       setResults([]);
@@ -43,7 +41,9 @@ function Navbar() {
     const fetchData = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_LOCAL_PORT}/products/search?keyword=${keyword}`
+          `${
+            import.meta.env.VITE_LOCAL_PORT
+          }/products/search?keyword=${keyword}`
           // `${import.meta.env.VITE_DEPLOY_PORT}/products/search?keyword=${keyword}`
         );
         setResults(res.data.data);
@@ -56,7 +56,6 @@ function Navbar() {
     const timeout = setTimeout(fetchData, 400);
     return () => clearTimeout(timeout);
   }, [keyword]);
-
 
   const languageOptions = [
     { key: "vi", label: "Tiếng Việt" },
@@ -145,6 +144,15 @@ function Navbar() {
                 type="text"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && keyword.trim()) {
+                    navigate(
+                      `/products?name=${encodeURIComponent(keyword.trim())}`
+                    );
+                    setShowDropdown(false);
+                    setKeyword("");
+                  }
+                }}
                 placeholder="Tìm kiếm sản phẩm..."
                 className="w-full px-4 py-2 rounded-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-300"
               />
@@ -152,7 +160,9 @@ function Navbar() {
               {showDropdown && (
                 <div className="absolute left-0 top-full mt-2 w-full bg-white shadow-lg rounded-lg z-50 max-h-60 overflow-y-auto">
                   {results.length === 0 ? (
-                    <div className="p-3 text-gray-500">Không tìm thấy sản phẩm</div>
+                    <div className="p-3 text-gray-500">
+                      Không tìm thấy sản phẩm
+                    </div>
                   ) : (
                     <>
                       {results.map((item) => (
@@ -170,15 +180,24 @@ function Navbar() {
                             alt={item.productName}
                             className="w-10 h-10 object-cover rounded"
                           />
-                          <span className="text-gray-800 ml-2">{item.name}</span>
+                          <span className="text-gray-800 ml-2">
+                            {item.name}
+                          </span>
                         </div>
                       ))}
-                      {totalCount > 5 && (
+                      {totalCount >= 5 && (
                         <div
                           className="p-3 text-blue-600 font-medium text-center border-t cursor-pointer hover:bg-blue-50"
-                          onClick={() => navigate(`/listProduct?name=${keyword}`)}
+                          onClick={() =>
+                            {
+                              setKeyword("");
+                              setShowDropdown(false)
+                              navigate(`/products?name=${keyword}`)
+                            }
+                          }
+                          
                         >
-                          Xem thêm {totalCount - 5} sản phẩm...
+                          Xem thêm {totalCount - 4} sản phẩm...
                         </div>
                       )}
                     </>
@@ -187,7 +206,6 @@ function Navbar() {
               )}
             </div>
           </div>
-
 
           <div className="flex items-center">
             <div className="relative flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-white/20 transition cursor-pointer">
@@ -232,7 +250,7 @@ function Navbar() {
             <div className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/20 transition cursor-pointer">
               <Link to="/cart">
                 <ShoppingCartIcon className="w-6 h-6 text-white" />
-                {cartCount>0 && !isLoading && (
+                {cartCount > 0 && !isLoading && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
                     {cartCount}
                   </span>
@@ -242,7 +260,6 @@ function Navbar() {
           </div>
         </div>
       </div>
-
     </nav>
   );
 }

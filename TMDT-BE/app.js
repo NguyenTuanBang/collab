@@ -52,7 +52,7 @@ app.use('/api/order', orderRouter);
 app.use('/api/createProduct', authController.protect, upload.array("variantImages"), productController.createNewProduct);
 app.use("/promotion", productRouter)
 app.get('/alltags', tagsController.getAll);
-app.get('/fivetags', tagsController.getFive);
+app.get('/sixtags', tagsController.getSix);
 // app.get('/testdata', authController.protect, test.getOrderItem)
 // ❌ KHÔNG cần serve thư mục local avatar nữa
 // Vì dùng Cloudinary nên phần này bỏ đi:

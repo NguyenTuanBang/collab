@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import ProductCard from "./ProductCard";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { Link } from "react-router-dom";
 
 const ProductCarousel = ({ products }) => {
   const carouselRef = useRef(null);
@@ -38,7 +39,9 @@ const ProductCarousel = ({ products }) => {
             key={product._id}
             className="flex-shrink-0 w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
           >
-            <ProductCard product={product} />
+            <Link to={`/product/${product._id}`}>
+              <ProductCard key={product._id} product={product} />
+            </Link>
           </div>
         ))}
       </div>

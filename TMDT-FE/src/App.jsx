@@ -14,6 +14,7 @@ import SellerRegister from "./pages/SellerRegister";
 import Cart from "./pages/Cart";
 import Order from "./pages/Order";
 import ProductForm from "./components/formCreateProduct";
+import ListProduct from "./pages/ListProduct";
 
 function App() {
   return (
@@ -33,11 +34,12 @@ function App() {
         <Route path="forgot-password" element={<ForgotPassword />} />
       </Route>
       <Route path="/test" element={<ProductForm />} />
-      <Route path="/products" element={<Products />} />
+      <Route path="/" element={<Products />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/order" element={<Order />} />
-      {/* <Route path="/listProduct" element={<ListProduct/>} /> */}
+      <Route path="/products" element={<ListProduct/>} />
+      {/* <Route path="/products/:name" element={<ListProduct/>} /> */}
     </Routes>
   );
 }

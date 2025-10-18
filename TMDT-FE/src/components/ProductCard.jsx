@@ -2,7 +2,7 @@ const ProductCard = ({ product }) => {
   const minPrice = Math.min(...product.variants.map(v => v.price));
 
   return (
-    <div className="relative w-64 cursor-pointer overflow-hidden rounded-xl border border-transparent bg-white shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:border-gray-300">
+    <div className="relative w-64 cursor-pointer overflow-hidden rounded-xl border border-transparent bg-white shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:border-gray-300 mb-5">
       <div className="absolute inset-0 opacity-0 transition-opacity duration-300 hover:opacity-100 z-10 rounded-xl bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
       <div className="relative z-0 w-full h-48 flex items-center justify-center overflow-hidden bg-gray-100">
         <img

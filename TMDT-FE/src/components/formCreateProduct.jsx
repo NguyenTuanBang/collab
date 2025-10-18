@@ -266,7 +266,7 @@ const ProductFormModal = () => {
               ]}
             >
               <Select
-                mode="tags"
+                mode="multiple"
                 tokenSeparators={[","]}
                 placeholder="Nhập hoặc chọn tags"
                 options={tagOption}

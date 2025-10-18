@@ -5,20 +5,31 @@ import api from "../utils/api";
 import CartDropdown from "../components/CartDropDown";
 import { useNavigate } from "react-router-dom";
 
-
-
 function Cart() {
   const [cart, setCart] = useState({});
   const [cartStores, setCartStores] = useState([]);
-  const [displayPayBtn, setDisplayPayBtn] = useState(false)
-  const navigate = useNavigate()
+  const [displayPayBtn, setDisplayPayBtn] = useState(false);
+  const navigate = useNavigate();
 
   const fetchCart = async () => {
     try {
       const res = await api.get(`/cart/`);
-      setCart(res.data.data);
-      setCartStores(res.data.data.Store);
-      setDisplayPayBtn(res.data.data.Store.Item)
+      const cartData = res.data.data
+      setCart(cartData);
+      setCartStores(cartData.Store);
+      let hasChosenItem = false;
+
+      for (const store of cartData.Store) {
+        for (const item of store.Item) {
+          if (item.is_chosen) {
+            hasChosenItem = true;
+            break;
+          }
+        }
+        if (hasChosenItem) break; // dừng luôn nếu đã tìm thấy
+      }
+
+      setDisplayPayBtn(hasChosenItem);
     } catch (err) {
       console.error(err);
     }
@@ -28,6 +39,7 @@ function Cart() {
     fetchCart();
   }, []);
 
+  console.log(displayPayBtn)
   return (
     <>
       <Navbar />
@@ -55,9 +67,11 @@ function Cart() {
                 </p>
               </div>
 
-              <button 
-                className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-md hover:opacity-90 transition-all active:scale-95"
-                onClick={()=>navigate("/order")}>
+              <button
+                className={`bg-gradient-to-r from-blue-500 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-md hover:opacity-90 transition-all active:scale-95 ${displayPayBtn ? '' : 'opacity-50 cursor-not-allowed disabled'}`}
+                onClick={() => navigate("/order")}
+                disabled={!displayPayBtn}
+              >
                 Thanh toán
               </button>
             </div>
@@ -67,6 +81,5 @@ function Cart() {
     </>
   );
 }
-
 
 export default Cart;

@@ -140,7 +140,7 @@ function Product() {
       setTopRating(res.data.data)
     }
     const fetchProduct = async () => {
-      const res = await axios.get(`${import.meta.env.VITE_LOCAL_PORT}/products`)
+      const res = await axios.post(`${import.meta.env.VITE_LOCAL_PORT}/products`)
       // const res = await axios.get(`${import.meta.env.VITE_DEPLOY_PORT}/products/most-favourite`)
       setProducts(res.data.data)
     }
@@ -152,7 +152,7 @@ function Product() {
   return (
     <>
       <Navbar />
-      <div className="mt-40 px-6">
+      <div className="mt-25 px-6">
         <Banner />
         <div className="mt-20 px-10">
           <h2 className="text-2xl font-bold mb-4">Danh mục</h2>

@@ -23,13 +23,13 @@ const Order = () => {
   const [isAddressDropdownOpen, setIsAddressDropdownOpen] = useState(false);
   const navigate = useNavigate()
 
+  const fetchData = async () => {
+    const res = await api.get("/users/me/address");
+    const resAddress = res.data.data;
+    setListAdress(resAddress.filter((item) => item.isDefault === false));
+    setChosenAddress(resAddress.find((item) => item.isDefault));
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      const res = await api.get("/users/me/address");
-      const resAddress = res.data.data;
-      setListAdress(resAddress.filter((item) => item.isDefault === false));
-      setChosenAddress(resAddress.find((item) => item.isDefault));
-    };
     fetchData();
   }, []);
 
@@ -44,6 +44,7 @@ const Order = () => {
   };
   useEffect(() => {
     if (chosenAddress && chosenAddress._id) fetchPreOrder();
+    fetchData();
   }, [chosenAddress]);
 
   const chooseNewAddress = (id) => {
@@ -166,6 +167,8 @@ const Order = () => {
       onSuccess: () => {
         resetForm();
         onOpenChange(false);
+        fetchData();
+        setIsAddressDropdownOpen(false)
         toast.success("Thành công", "Bạn đã thêm một địa chỉ mới");
       },
       onError: (err) => {
@@ -340,7 +343,7 @@ const Order = () => {
 
           {isAddressDropdownOpen && (
             <div className="absolute z-10 w-full bg-white border mt-2 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {listAddress.length > 1 ? (
+              {listAddress.length > 0 ? (
                 listAddress
                   .filter((addr) => addr._id !== chosenAddress?._id)
                   .map((addr) => (
@@ -349,11 +352,11 @@ const Order = () => {
                       onClick={() => chooseNewAddress(addr._id)}
                       className="p-3 hover:bg-gray-100 cursor-pointer"
                     >
-                      <p className="font-semibold">{addr.fullName}</p>
+                      <p className="font-semibold">{addr.name}</p>
                       <p className="text-gray-600 text-sm">{addr.phone}</p>
                       <p className="text-gray-500 text-sm truncate">
-                        {addr.specificAddress}, {addr.ward}, {addr.district},{" "}
-                        {addr.city}
+                        {addr.specificAddress} {addr.ward}, {addr.district},{" "}
+                        {addr.province}
                       </p>
                     </div>
                   ))

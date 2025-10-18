@@ -2,7 +2,7 @@ import { Router } from "express";
 import productController from "../controllers/product.Controller.js";
 const router = Router();
 
-router.get('/', productController.getAll);
+router.post('/', productController.getAll);
 
 
 router.get('/most-favourite', productController.getMostFavourite);

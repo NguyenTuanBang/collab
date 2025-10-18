@@ -7,6 +7,7 @@ import ProductVariantsModel from "../models/product_variantsModel.js";
 import ImageModel from "../models/imageModel.js";
 import SizeModel from "../models/sizeModel.js";
 import ProductTagsModel from "../models/ProductTagsModel.js";
+import removeVietnameseTones from "../utils/removeVietnameseTones.js";
 const commonLookups = [
   // join store
   {
@@ -78,14 +79,13 @@ const commonLookups = [
 ];
 
 const productController = {
-  isRun: (req, res, next) => {
-    const file = req.files;
-    console.log(file);
-    next();
-  },
+  // isRun: (req, res, next) => {
+  //   const file = req.files;
+  //   console.log(file);
+  //   next();
+  // },
   createNewProduct: async (req, res) => {
     try {
-      
       const user = req.user;
       const store = await StoreModel.findOne({ user: user._id });
       const { name, description } = req.body;
@@ -106,7 +106,7 @@ const productController = {
         tags.map(async (tagId) => {
           await ProductTagsModel.create({
             product_id: newProduct._id,
-            tag_id: tagId, 
+            tag_id: tagId,
           });
         })
       );
@@ -135,36 +135,35 @@ const productController = {
         });
       }
 
-     
       variants.forEach((variant) => {
         const idx = variant.urlIndex;
         if (uploadedImages[idx]) {
-          variant.image = uploadedImages[idx]; 
+          variant.image = uploadedImages[idx];
         }
       });
 
       await Promise.all(
-        variants.map(async (color)=>{
+        variants.map(async (color) => {
           const image = await ImageModel.create({
             url: color.image,
-            color: color.color
-          })
+            color: color.color,
+          });
           await Promise.all(
-            color.sizes.map(async (size)=>{
+            color.sizes.map(async (size) => {
               const newSize = await SizeModel.create({
-                size_value: size.size
-              })
+                size_value: size.size,
+              });
               const variant = await ProductVariantsModel.create({
                 product_id: newProduct._id,
                 image: image._id,
                 size: newSize._id,
                 quantity: size.quantity,
-                price: size.price
-              })
+                price: size.price,
+              });
             })
-          )
+          );
         })
-      )
+      );
       res.status(201).json({
         status: "success",
       });
@@ -174,32 +173,120 @@ const productController = {
     }
   },
 
+  // getAll: async (req, res) => {
+  //   try {
+  //     const curPage = parseInt(req.query.page) || 1;
+  //     const {keyword, tag, price} = req.body;
+  //     const query = { status: "Đang bán" };
+
+  //     // Đếm tổng số sản phẩm đang bán
+  //     const totalItems = await ProductModel.countDocuments(query);
+  //     const numberOfPages = Math.ceil(totalItems / 20);
+
+  //     if (curPage > numberOfPages && numberOfPages > 0) {
+  //       return res.status(400).json({ message: "Invalid page number" });
+  //     }
+
+  //     // Lấy dữ liệu gốc trong trang hiện tại
+  //     const data = await ProductModel.aggregate([
+  //       { $match: query },
+  //       ...commonLookups,
+  //       { $skip: (curPage - 1) * 20 },
+  //       { $limit: 20 },
+  //     ]);
+
+  //     // Nếu có từ khóa → lọc theo phiên bản không dấu
+  //     let filteredData = data;
+  //     if (keyword) {
+  //       const keywordUnsigned = removeVietnameseTones(keyword.toLowerCase());
+  //       filteredData = data.filter((item) => {
+  //         const productNameUnsigned = removeVietnameseTones(
+  //           item.name.toLowerCase()
+  //         );
+  //         return productNameUnsigned.includes(keywordUnsigned);
+  //       });
+  //     }
+
+  //     res.status(200).json({
+  //       message: "Success",
+  //       data: filteredData,
+  //       numberOfPages,
+  //     });
+  //   } catch (error) {
+  //     res.status(500).json({ message: "Error", error: error.message });
+  //   }
+  // },
   getAll: async (req, res) => {
     try {
-      const curPage = parseInt(req.query.curPage) || 1;
-      const name = req.query.name || "";
-      const query = {};
+      const curPage = parseInt(req.query.page) || 1;
+      const pageSize = 20;
 
-      if (name) query.name = { $regex: name, $options: "i" };
-      query.status = "Đang bán";
+      const { keyword = "", tag = [], price = {} } = req.body || {};
 
-      const itemQuantity = await ProductModel.countDocuments(query);
-      const numberOfPages = Math.ceil(itemQuantity / 20);
+      const baseMatch = { status: "Đang bán" };
 
-      if (curPage > numberOfPages && numberOfPages > 0) {
-        return res.status(400).send({ message: "Invalid page number" });
+      const skip = (curPage - 1) * pageSize;
+
+      // 🔹 Bước 1: Xây pipeline gốc
+      const pipeline = [{ $match: baseMatch }, ...commonLookups];
+
+      // 🔹 Bước 2: Lọc theo tag nếu có
+      if (Array.isArray(tag) && tag.length > 0) {
+        const tagIds = tag.map((t) => new mongoose.Types.ObjectId(t));
+        pipeline.push({
+          $match: {
+            "producttags.tag._id": { $in: tagIds },
+          },
+        });
       }
 
-      const data = await ProductModel.aggregate([
-        { $match: query },
-        ...commonLookups,
-        { $skip: (curPage - 1) * 20 },
-        { $limit: 20 },
-      ]);
+      // 🔹 Bước 3: Lọc theo khoảng giá — nếu có ít nhất 1 variant nằm trong khoảng
+      if (price.min || price.max) {
+        const priceFilter = {};
+        if (price.min) priceFilter.$gte = Number(price.min);
+        if (price.max) priceFilter.$lte = Number(price.max);
 
-      res.status(200).send({ message: "Success", data, numberOfPages });
+        pipeline.push({
+          $match: {
+            "variants.price": priceFilter,
+          },
+        });
+      }
+
+      // 🔹 Bước 4: Gom nhóm để loại trùng (do join nhiều bảng)
+      pipeline.push({
+        $group: {
+          _id: "$_id",
+          doc: { $first: "$$ROOT" },
+        },
+      });
+
+      // 🔹 Bước 5: Lọc theo keyword không dấu (nếu có)
+      let data = await ProductModel.aggregate(pipeline);
+
+      if (keyword && keyword.trim() !== "") {
+        const keywordUnsigned = removeVietnameseTones(keyword.toLowerCase());
+        data = data.filter((item) => {
+          const productNameUnsigned = removeVietnameseTones(
+            item.doc.name.toLowerCase()
+          );
+          return productNameUnsigned.includes(keywordUnsigned);
+        });
+      }
+
+      // 🔹 Bước 6: Tính tổng & phân trang
+      const totalItems = data.length;
+      const numberOfPages = Math.ceil(totalItems / pageSize);
+      const paginatedData = data.slice(skip, skip + pageSize);
+
+      res.status(200).json({
+        message: "Success",
+        data: paginatedData.map((d) => d.doc),
+        numberOfPages,
+      });
     } catch (error) {
-      res.status(500).send({ message: "Error", error: error.message });
+      console.error("Error in getAll:", error);
+      res.status(500).json({ message: "Error", error: error.message });
     }
   },
 
